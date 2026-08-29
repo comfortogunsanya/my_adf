@@ -1,0 +1,15 @@
+{
+	"name": "bootcamp-ogunsanya",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Disabled",
+			"editable": true
+		}
+	},
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "bf81fa3e-c6e6-4c49-bc56-3352e267493a",
+		"tenantId": "ed637cb6-8f8e-4025-8f68-4c7058e9f1f0"
+	}
+}
