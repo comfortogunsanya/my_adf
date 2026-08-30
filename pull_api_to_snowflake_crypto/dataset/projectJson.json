@@ -1,0 +1,25 @@
+{
+	"name": "projectJson",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Projectazureblobstorage",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"fileName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "@dataset().fileName",
+				"folderPath": "raw_weather",
+				"container": "project1"
+			}
+		},
+		"schema": {}
+	}
+}

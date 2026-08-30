@@ -1,0 +1,16 @@
+{
+	"name": "projectsnowflakeTable_weather",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "projectsnowflake",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SnowflakeV2Table",
+		"schema": [],
+		"typeProperties": {
+			"schema": "RAW",
+			"table": "WEATHER"
+		}
+	}
+}

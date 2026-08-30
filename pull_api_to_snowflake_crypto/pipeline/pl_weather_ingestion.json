@@ -1,6 +1,258 @@
 {
 	"name": "pl_weather_ingestion",
 	"properties": {
+		"activities": [
+			{
+				"name": "GetCapitalCities",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SnowflakeV2Source",
+						"query": "SELECT CAPITAL_CITY FROM RAW.CAPITAL_CITIES",
+						"exportSettings": {
+							"type": "SnowflakeExportCopyCommand"
+						},
+						"treatDecimalAsString": false
+					},
+					"dataset": {
+						"referenceName": "projectnowflakeTable_cities",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "TruncateWeatherTable",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "GetCapitalCities",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "projectsnowflake",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "NonQuery",
+							"text": "TRUNCATE TABLE RAW.WEATHER"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00",
+					"treatDecimalAsString": false
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "TruncateWeatherTable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('GetCapitalCities').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "GetWeatherJSON",
+							"type": "WebActivity",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"method": "GET",
+								"url": "@concat('https://wttr.in/', replace(item().CAPITAL_CITY, ' ', '+'), '?format=j1')"
+							}
+						},
+						{
+							"name": "InsertToSnowflake",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "GetWeatherJSON",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "projectsnowflake",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"parameters": [
+											{
+												"name": "current_condition",
+												"type": "String",
+												"value": "@string(activity('GetWeatherJSON').output.current_condition)",
+												"direction": "Input"
+											},
+											{
+												"name": "nearest_area",
+												"type": "String",
+												"value": "@string(activity('GetWeatherJSON').output.nearest_area)",
+												"direction": "Input"
+											},
+											{
+												"name": "output.request",
+												"type": "String",
+												"value": "@string(activity('GetWeatherJSON').output.request)",
+												"direction": "Input"
+											},
+											{
+												"name": "output.weather",
+												"type": "String",
+												"value": "@string(activity('GetWeatherJSON').output.weather)",
+												"direction": "Input"
+											}
+										],
+										"type": "Query",
+										"text": "INSERT INTO RAW.WEATHER (current_condition, nearest_area, request, weather) SELECT PARSE_JSON(?), PARSE_JSON(?), PARSE_JSON(?), PARSE_JSON(?);\n \n "
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00",
+								"treatDecimalAsString": false
+							}
+						},
+						{
+							"name": "ArchiveToBlob",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "InsertToSnowflake",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010",
+									"requestMethod": "GET",
+									"paginationRules": {
+										"supportRFC5988": "true"
+									}
+								},
+								"sink": {
+									"type": "JsonSink",
+									"storeSettings": {
+										"type": "AzureBlobStorageWriteSettings"
+									},
+									"formatSettings": {
+										"type": "JsonWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "Projectrestservice",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "projectJson",
+									"type": "DatasetReference",
+									"parameters": {
+										"fileName": "@concat(formatDateTime(utcNow(), 'yyyy-MM-dd HH:mm:ss'), '.json')"
+									}
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "CallTransformProcedure",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "ForEach1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "projectsnowflake",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "CALL RAW.TRANSFORM_WEATHER()"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00",
+					"treatDecimalAsString": false
+				}
+			}
+		],
 		"annotations": []
 	}
 }
