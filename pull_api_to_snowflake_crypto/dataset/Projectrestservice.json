@@ -5,10 +5,18 @@
 			"referenceName": "projectrestservice",
 			"type": "LinkedServiceReference"
 		},
+		"parameters": {
+			"city": {
+				"type": "string"
+			}
+		},
 		"annotations": [],
 		"type": "RestResource",
 		"typeProperties": {
-			"relativeUrl": "@concat(dataset().city, '?format=j1')"
+			"relativeUrl": {
+				"value": "@concat(dataset().city, '?format=j1')",
+				"type": "Expression"
+			}
 		},
 		"schema": []
 	}
