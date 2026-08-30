@@ -9,6 +9,12 @@
 					"referenceName": "pull_api_to_snowflake",
 					"type": "PipelineReference"
 				}
+			},
+			{
+				"pipelineReference": {
+					"referenceName": "pl_weather_ingestion",
+					"type": "PipelineReference"
+				}
 			}
 		],
 		"type": "ScheduleTrigger",

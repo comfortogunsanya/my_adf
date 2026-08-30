@@ -96,7 +96,10 @@
 							"userProperties": [],
 							"typeProperties": {
 								"method": "GET",
-								"url": "@concat('https://wttr.in/', replace(item().CAPITAL_CITY, ' ', '+'), '?format=j1')"
+								"url": {
+									"value": "@concat('https://wttr.in/', replace(item().CAPITAL_CITY, ' ', '+'), '?format=j1')",
+									"type": "Expression"
+								}
 							}
 						},
 						{
@@ -129,25 +132,37 @@
 											{
 												"name": "current_condition",
 												"type": "String",
-												"value": "@string(activity('GetWeatherJSON').output.current_condition)",
+												"value": {
+													"value": "@string(activity('GetWeatherJSON').output.current_condition)",
+													"type": "Expression"
+												},
 												"direction": "Input"
 											},
 											{
 												"name": "nearest_area",
 												"type": "String",
-												"value": "@string(activity('GetWeatherJSON').output.nearest_area)",
+												"value": {
+													"value": "@string(activity('GetWeatherJSON').output.nearest_area)",
+													"type": "Expression"
+												},
 												"direction": "Input"
 											},
 											{
 												"name": "output.request",
 												"type": "String",
-												"value": "@string(activity('GetWeatherJSON').output.request)",
+												"value": {
+													"value": "@string(activity('GetWeatherJSON').output.request)",
+													"type": "Expression"
+												},
 												"direction": "Input"
 											},
 											{
 												"name": "output.weather",
 												"type": "String",
-												"value": "@string(activity('GetWeatherJSON').output.weather)",
+												"value": {
+													"value": "@string(activity('GetWeatherJSON').output.weather)",
+													"type": "Expression"
+												},
 												"direction": "Input"
 											}
 										],
@@ -202,7 +217,10 @@
 							"inputs": [
 								{
 									"referenceName": "Projectrestservice",
-									"type": "DatasetReference"
+									"type": "DatasetReference",
+									"parameters": {
+										"city": "@replace(item().CAPITAL_CITY, ' ', '+')"
+									}
 								}
 							],
 							"outputs": [
@@ -210,7 +228,7 @@
 									"referenceName": "projectJson",
 									"type": "DatasetReference",
 									"parameters": {
-										"fileName": "@concat(formatDateTime(utcNow(), 'yyyy-MM-dd HH:mm:ss'), '.json')"
+										"fileName": "update filename in SINK of copy to  @concat(item().CAPITAL_CITY, '/', formatDateTime(utcNow(), 'yyyy-MM-dd HH:mm:ss'), '.json')"
 									}
 								}
 							]
